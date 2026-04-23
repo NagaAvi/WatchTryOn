@@ -1,0 +1,8 @@
+AGENTS.md
+
+# OS / editor noise
+Thumbs.db
+.DS_Store
+
+# Local logs
+*.log

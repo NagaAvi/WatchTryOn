@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    >
+    <title>AR Watch Try-On</title>
+    <style>
+      :root {
+        --bg: #0b1220;
+        --bg-soft: #10192b;
+        --panel: rgba(9, 16, 27, 0.74);
+        --panel-strong: rgba(9, 16, 27, 0.9);
+        --line: rgba(183, 194, 208, 0.18);
+        --text: #f4f7fb;
+        --muted: #99a8bb;
+        --accent: #f2b261;
+        --accent-strong: #ffcc7a;
+        --good: #6de1af;
+        --warn: #ff8c69;
+        --shadow: 0 28px 90px rgba(0, 0, 0, 0.38);
+        color-scheme: dark;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+
+      body {
+        font-family: "Space Grotesk", "Segoe UI", sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at top left, rgba(242, 178, 97, 0.2), transparent 28%),
+          radial-gradient(circle at bottom right, rgba(42, 119, 255, 0.16), transparent 30%),
+          linear-gradient(145deg, #07101d 0%, #0b1220 46%, #111a29 100%);
+      }
+
+      .shell {
+        min-height: 100%;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 18px;
+        padding: 18px;
+      }
+
+      .topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+      }
+
+      .title-block {
+        display: grid;
+        gap: 8px;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        width: fit-content;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 12px;
+        border: 1px solid rgba(242, 178, 97, 0.24);
+        border-radius: 999px;
+        background: rgba(242, 178, 97, 0.08);
+        color: var(--accent-strong);
+        font-size: 0.8rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(2rem, 5vw, 4.2rem);
+        line-height: 0.95;
+        letter-spacing: -0.04em;
+        max-width: 9ch;
+      }
+
+      .subtitle {
+        margin: 0;
+        max-width: 62ch;
+        color: var(--muted);
+        font-size: clamp(0.98rem, 1.6vw, 1.08rem);
+        line-height: 1.55;
+      }
+
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 10px;
+      }
+
+      button {
+        border: 0;
+        border-radius: 999px;
+        padding: 14px 18px;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+        transition: transform 140ms ease, opacity 140ms ease, background 140ms ease;
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+      }
+
+      button:disabled {
+        opacity: 0.62;
+        cursor: wait;
+        transform: none;
+      }
+
+      .primary {
+        background: linear-gradient(135deg, var(--accent) 0%, #e89550 100%);
+        color: #201206;
+        box-shadow: 0 20px 40px rgba(242, 178, 97, 0.18);
+      }
+
+      .secondary {
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text);
+      }
+
+      .stage-card {
+        position: relative;
+        overflow: hidden;
+        min-height: min(72vh, 860px);
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0)),
+          rgba(7, 11, 18, 0.72);
+        box-shadow: var(--shadow);
+      }
+
+      .stage {
+        position: absolute;
+        inset: 0;
+        transform-origin: center;
+      }
+
+      .stage--mirrored {
+        transform: scaleX(-1);
+      }
+
+      video,
+      canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      video {
+        filter: saturate(1.02) contrast(1.02);
+        background: #060a11;
+      }
+
+      #debugCanvas {
+        pointer-events: none;
+      }
+
+      .frame-overlay {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background:
+          radial-gradient(circle at center, transparent 0 52%, rgba(0, 0, 0, 0.36) 100%),
+          linear-gradient(180deg, rgba(0, 0, 0, 0.22), rgba(0, 0, 0, 0));
+      }
+
+      .status-pill {
+        position: absolute;
+        left: 18px;
+        bottom: 18px;
+        max-width: min(560px, calc(100% - 36px));
+        padding: 12px 16px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        backdrop-filter: blur(18px);
+        background: var(--panel);
+        box-shadow: var(--shadow);
+      }
+
+      .status-label {
+        color: var(--muted);
+        font-size: 0.74rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .status-text {
+        margin: 0;
+        font-size: 1rem;
+        line-height: 1.5;
+      }
+
+      .status-card[data-tone="good"] .status-text {
+        color: var(--good);
+      }
+
+      .status-card[data-tone="warn"] .status-text {
+        color: var(--warn);
+      }
+
+      .status-pill[hidden] {
+        display: none;
+      }
+
+      @media (max-width: 920px) {
+        .topbar {
+          flex-direction: column;
+        }
+
+        .controls {
+          justify-content: flex-start;
+        }
+
+        .stage-card {
+          min-height: 78vh;
+        }
+
+      }
+
+      @media (max-width: 640px) {
+        .shell {
+          padding: 14px;
+        }
+
+        .stage-card {
+          border-radius: 22px;
+        }
+
+        .status-pill {
+          left: 12px;
+          right: 12px;
+          bottom: 12px;
+          max-width: none;
+          border-radius: 18px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="topbar">
+        <div class="title-block">
+          <span class="eyebrow">Revalsys realism prototype</span>
+          <h1>AR Watch Try-On</h1>
+          <p class="subtitle">
+            Wrist-aligned watch placement with MediaPipe hand landmarks,
+            Three.js pose mapping, palm-side visibility rules, and a first-pass
+            depth mask for believable wear.
+          </p>
+        </div>
+
+        <div class="controls">
+          <button id="startButton" class="primary">Start camera</button>
+          <button id="debugButton" class="secondary" type="button">Hide debug</button>
+        </div>
+      </section>
+
+      <section class="stage-card">
+        <div id="stage" class="stage">
+          <video id="camera" autoplay muted playsinline></video>
+          <canvas id="debugCanvas"></canvas>
+        </div>
+        <div class="frame-overlay"></div>
+
+        <article id="statusPill" class="status-pill" hidden>
+          <span class="status-label">System status</span>
+          <p id="statusText" class="status-text">
+            Ready to initialize camera, hand tracking, and watch rig.
+          </p>
+        </article>
+      </section>
+    </main>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/"
+        }
+      }
+    </script>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
